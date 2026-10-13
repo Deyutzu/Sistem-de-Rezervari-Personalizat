@@ -1,0 +1,10 @@
+# Copiază acest fișier ca "application-local.properties" (același folder) și completează valorile.
+# application-local.properties este în .gitignore -> secretele nu ajung pe GitHub.
+
+# Folosite doar cu profilul "postgres"
+DB_PASSWORD=parola-ta-locala
+# DB_URL=jdbc:postgresql://localhost:5432/stayfinder
+# DB_USERNAME=stayfinder
+
+# Faza 4: cheia secretă pentru semnarea token-urilor JWT (minim 32 de caractere)
+# app.jwt.secret=schimba-ma-cu-un-sir-aleator-lung-de-cel-putin-32-caractere

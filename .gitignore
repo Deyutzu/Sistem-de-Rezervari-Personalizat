@@ -1,0 +1,12 @@
+# ===== Comun (monorepo) =====
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
+*.iml
+
+# Secrete: NU se pun niciodată în git (vezi fișierele *.example)
+.env
+**/application-local.properties
+**/local.properties

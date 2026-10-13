@@ -1,0 +1,19 @@
+# ===== Android (Gradle / Android Studio) =====
+.gradle/
+build/
+app/build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Android Studio
+.idea/
+*.iml
+.navigation/
+
+# Secrete locale (SDK path, chei) - vezi local.properties.example
+local.properties
