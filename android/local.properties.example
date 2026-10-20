@@ -1,0 +1,5 @@
+# Android Studio creeaza automat local.properties la deschiderea proiectului.
+# Daca construiesti din linia de comanda, copiaza acest fisier ca "local.properties"
+# si pune calea catre Android SDK (folosind / sau \\ in loc de \).
+# local.properties este in .gitignore: contine cai/chei specifice calculatorului tau.
+sdk.dir=C\:\\Users\\NUMELE_TAU\\AppData\\Local\\Android\\Sdk

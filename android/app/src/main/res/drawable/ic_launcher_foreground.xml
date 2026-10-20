@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Prim-planul iconitei: un pin de locatie cu un munte stilizat in interior.
+     Canvas 108x108; zona sigura (vizibila pe orice forma de iconita) e cercul central de ~66dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Pin -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M54,28C43.5,28 35,36.5 35,47C35,61 54,80 54,80C54,80 73,61 73,47C73,36.5 64.5,28 54,28Z" />
+    <!-- Munte in interiorul pinului -->
+    <path
+        android:fillColor="#FF00696B"
+        android:pathData="M43,54L50,43L54,49L57,45L65,54Z" />
+    <!-- Soare -->
+    <path
+        android:fillColor="#FFFF8A65"
+        android:pathData="M60,40m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+</vector>

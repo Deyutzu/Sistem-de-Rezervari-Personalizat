@@ -11,7 +11,7 @@ Platformă de descoperire și rezervare de cazări cu **feed personalizat** în 
 | Fază | Conținut | Stare |
 |------|----------|-------|
 | 1 | Backend de bază: entități, import JSON, GET cazări, Swagger | ✅ |
-| 2 | Android: listă + detaliu, navigare | ⏳ |
+| 2 | Android: listă + detaliu, navigare | ✅ |
 | 3 | Android: Room, onboarding | ⏳ |
 | 4 | Backend: JWT, preferințe, favorite, rezervări, recomandări | ⏳ |
 | 5 | Android ↔ backend (Retrofit), feed personalizat | ⏳ |
@@ -76,8 +76,28 @@ pawcmo/
 │       ├── application.properties           H2 (dev)
 │       ├── application-postgres.properties  profil PostgreSQL
 │       └── data/                            accommodations.json, similar-regions.json
-└── android/                         Aplicația Android (din faza 2)
+└── android/                         Aplicația Android (Kotlin + Jetpack Compose)
+    └── app/src/main/java/com/stayfinder/app/
+        ├── model/                   Modele de domeniu (Accommodation, enum-uri)
+        ├── data/                    Repository-uri + AppContainer (DI manual)
+        └── ui/
+            ├── components/          Carduri și stări reutilizabile (Loading/Error/Empty)
+            ├── feed/                Ecranul „Pentru tine" + FeedViewModel
+            ├── detail/              Ecranul de detaliu cazare + DetailViewModel
+            ├── favorites/           Ecranul de favorite + FavoritesViewModel
+            ├── navigation/          Routes + StayFinderNavHost (Navigation Compose)
+            └── theme/               Material 3 (culori turcoaz/coral, dark mode, forme)
 ```
+
+## Rulare Android (faza 2)
+
+1. Deschide folderul `android/` în **Android Studio** (sau rulează din linia de comandă).
+2. Pentru linia de comandă:
+   ```powershell
+   cd android
+   .\gradlew.bat assembleDebug testDebugUnitTest
+   ```
+   APK-ul generat se află în `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Securitate
 
