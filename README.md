@@ -12,7 +12,7 @@ Platformă de descoperire și rezervare de cazări cu **feed personalizat** în 
 |------|----------|-------|
 | 1 | Backend de bază: entități, import JSON, GET cazări, Swagger | ✅ |
 | 2 | Android: listă + detaliu, navigare | ✅ |
-| 3 | Android: Room, onboarding | ⏳ |
+| 3 | Android: Room, onboarding | ✅ |
 | 4 | Backend: JWT, preferințe, favorite, rezervări, recomandări | ⏳ |
 | 5 | Android ↔ backend (Retrofit), feed personalizat | ⏳ |
 | 6 | Web Thymeleaf + panou admin | ⏳ |
@@ -78,13 +78,16 @@ pawcmo/
 │       └── data/                            accommodations.json, similar-regions.json
 └── android/                         Aplicația Android (Kotlin + Jetpack Compose)
     └── app/src/main/java/com/stayfinder/app/
-        ├── model/                   Modele de domeniu (Accommodation, enum-uri)
-        ├── data/                    Repository-uri + AppContainer (DI manual)
+        ├── model/                   Modele de domeniu (Accommodation, UserPreferences, enum-uri)
+        ├── data/                    Repository-uri offline-first + DataStore + AppContainer
+        │   └── db/                  Room (StayFinderDatabase, Entities, DAOs)
         └── ui/
             ├── components/          Carduri și stări reutilizabile (Loading/Error/Empty)
+            ├── onboarding/          Onboarding în 4 pași + OnboardingViewModel
             ├── feed/                Ecranul „Pentru tine" + FeedViewModel
             ├── detail/              Ecranul de detaliu cazare + DetailViewModel
             ├── favorites/           Ecranul de favorite + FavoritesViewModel
+            ├── profile/             Profil + editare preferințe
             ├── navigation/          Routes + StayFinderNavHost (Navigation Compose)
             └── theme/               Material 3 (culori turcoaz/coral, dark mode, forme)
 ```

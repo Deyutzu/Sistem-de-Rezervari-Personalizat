@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
  * O ruta seamana cu un URL: "accommodation/{id}" are un argument, id.
  */
 object Routes {
+    const val ONBOARDING = "onboarding"
     const val FEED = "feed"
     const val FAVORITES = "favorites"
     const val BOOKINGS = "bookings"

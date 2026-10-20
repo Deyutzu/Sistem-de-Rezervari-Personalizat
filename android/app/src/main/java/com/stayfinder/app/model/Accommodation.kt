@@ -41,3 +41,22 @@ enum class TravelType(val label: String) {
     FAMILY("Familie"),
     FRIENDS("Prieteni")
 }
+
+/** Preferinta pentru all-inclusive aleasa la onboarding. */
+enum class AllInclusivePreference(val label: String) {
+    YES("Da, all-inclusive"),
+    NO("Fără all-inclusive"),
+    ANY("Indiferent")
+}
+
+/**
+ * Preferintele alese de utilizator la onboarding (si editabile din Profil).
+ * Folosite pentru personalizarea feed-ului si salvate local in Room.
+ */
+data class UserPreferences(
+    val preferredTypes: Set<AccommodationType> = setOf(AccommodationType.MOUNTAIN, AccommodationType.SEA),
+    val budgetMin: Int = 60,
+    val budgetMax: Int = 250,
+    val allInclusivePreference: AllInclusivePreference = AllInclusivePreference.ANY,
+    val travelType: TravelType = TravelType.COUPLE
+)

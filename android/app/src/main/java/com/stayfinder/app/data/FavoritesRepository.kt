@@ -1,8 +1,16 @@
 package com.stayfinder.app.data
 
+import com.stayfinder.app.data.db.FavoriteDao
+import com.stayfinder.app.data.db.FavoriteEntity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
 /**
@@ -18,16 +26,36 @@ interface FavoritesRepository {
 }
 
 /**
- * Faza 2: favoritele sunt tinute doar in memorie (se pierd la inchiderea aplicatiei).
- * Faza 3: le inlocuim cu o implementare Room, care le pastreaza si offline.
+ * Implementare persistenta cu Room (Faza 3): favoritele raman salvate in SQLite
+ * si dupa inchiderea aplicatiei / repornirea telefonului.
  */
+class RoomFavoritesRepository(
+    private val favoriteDao: FavoriteDao
+) : FavoritesRepository {
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    override val favoriteIds: StateFlow<Set<Long>> =
+        favoriteDao.observeFavoriteIds()
+            .map { it.toSet() }
+            .stateIn(scope, SharingStarted.Eagerly, emptySet())
+
+    override suspend fun toggle(accommodationId: Long) {
+        if (favoriteDao.isFavorite(accommodationId)) {
+            favoriteDao.deleteById(accommodationId)
+        } else {
+            favoriteDao.insert(FavoriteEntity(accommodationId = accommodationId))
+        }
+    }
+}
+
+/** Implementare in memorie pastrata pentru teste unitare rapide pe JVM. */
 class InMemoryFavoritesRepository : FavoritesRepository {
 
     private val _favoriteIds = MutableStateFlow<Set<Long>>(emptySet())
     override val favoriteIds: StateFlow<Set<Long>> = _favoriteIds.asStateFlow()
 
     override suspend fun toggle(accommodationId: Long) {
-        // update{} modifica atomic valoarea (sigur si daca e apelat din mai multe corutine)
         _favoriteIds.update { current ->
             if (accommodationId in current) current - accommodationId else current + accommodationId
         }

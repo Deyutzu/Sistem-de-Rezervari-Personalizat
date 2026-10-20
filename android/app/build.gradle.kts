@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     // Plugin-ul compilatorului Compose (obligatoriu de la Kotlin 2.0)
     alias(libs.plugins.kotlin.compose)
+    // KSP: genereaza codul SQL pentru @Dao si @Database din Room la compilare
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -61,6 +63,14 @@ dependencies {
 
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+
+    // Room (SQLite local) + procesor de adnotari KSP
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    // Preferences DataStore (flag onboarding + JWT in faza 5)
+    implementation(libs.androidx.datastore.preferences)
 
     testImplementation(libs.junit)
 }

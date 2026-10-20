@@ -19,6 +19,8 @@ import com.stayfinder.app.ui.components.EmptyView
 import com.stayfinder.app.ui.detail.DetailScreen
 import com.stayfinder.app.ui.favorites.FavoritesScreen
 import com.stayfinder.app.ui.feed.FeedScreen
+import com.stayfinder.app.ui.onboarding.OnboardingScreen
+import com.stayfinder.app.ui.profile.ProfileScreen
 
 /**
  * Harta de navigare: ce ecran corespunde fiecarei rute.
@@ -28,13 +30,24 @@ import com.stayfinder.app.ui.feed.FeedScreen
 @Composable
 fun StayFinderNavHost(
     navController: NavHostController,
+    startDestination: String,
     modifier: Modifier = Modifier
 ) {
     NavHost(
         navController = navController,
-        startDestination = Routes.FEED,
+        startDestination = startDestination,
         modifier = modifier
     ) {
+        composable(Routes.ONBOARDING) {
+            OnboardingScreen(
+                onFinished = {
+                    navController.navigate(Routes.FEED) {
+                        popUpTo(Routes.ONBOARDING) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable(Routes.FEED) {
             FeedScreen(onAccommodationClick = { id -> navController.navigate(Routes.detail(id)) })
         }
@@ -51,9 +64,8 @@ fun StayFinderNavHost(
         }
 
         composable(Routes.PROFILE) {
-            ComingSoonScreen(
-                title = "Profil",
-                message = "Aici îți vei putea edita preferințele de călătorie."
+            ProfileScreen(
+                onRerunOnboarding = { navController.navigate(Routes.ONBOARDING) }
             )
         }
 

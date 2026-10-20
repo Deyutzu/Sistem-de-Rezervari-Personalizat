@@ -9,11 +9,13 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.stayfinder.app.StayFinderApplication
 import com.stayfinder.app.data.AccommodationRepository
 import com.stayfinder.app.data.FavoritesRepository
+import com.stayfinder.app.data.PreferencesRepository
 import com.stayfinder.app.model.Accommodation
 import com.stayfinder.app.model.AccommodationType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -46,7 +48,8 @@ data class FeedUiState(
  */
 class FeedViewModel(
     private val accommodationRepository: AccommodationRepository,
-    private val favoritesRepository: FavoritesRepository
+    private val favoritesRepository: FavoritesRepository,
+    private val preferencesRepository: PreferencesRepository
 ) : ViewModel() {
 
     // MutableStateFlow e privat: doar ViewModel-ul poate modifica starea.
@@ -59,6 +62,13 @@ class FeedViewModel(
         viewModelScope.launch {
             favoritesRepository.favoriteIds.collect { ids ->
                 _uiState.update { it.copy(favoriteIds = ids) }
+            }
+        }
+        // Daca utilizatorul isi modifica preferintele (la onboarding sau din Profil),
+        // reincarcam si reordonam feed-ul.
+        viewModelScope.launch {
+            preferencesRepository.userPreferences.drop(1).collect {
+                refresh()
             }
         }
     }
@@ -110,7 +120,11 @@ class FeedViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as StayFinderApplication
-                FeedViewModel(app.container.accommodationRepository, app.container.favoritesRepository)
+                FeedViewModel(
+                    app.container.accommodationRepository,
+                    app.container.favoritesRepository,
+                    app.container.preferencesRepository
+                )
             }
         }
     }
