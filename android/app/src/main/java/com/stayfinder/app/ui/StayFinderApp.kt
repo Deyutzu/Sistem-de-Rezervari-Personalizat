@@ -35,18 +35,39 @@ fun StayFinderApp() {
     val onboardingCompleted by app.container.preferencesRepository
         .onboardingCompleted
         .collectAsStateWithLifecycle()
+    val isLoggedIn by app.container.authRepository
+        .isLoggedIn
+        .collectAsStateWithLifecycle()
 
     // Asteptam citirea initiala din DataStore (cateva milisecunde) ca sa nu facem "flash" intre ecrane
     val completed = onboardingCompleted ?: run {
         LoadingView()
         return
     }
-    // Fixam destinatia de start o singura data la deschiderea aplicatiei
-    val startDestination = remember { if (completed) Routes.FEED else Routes.ONBOARDING }
+
+    // Fixam destinatia de start: dacă nu e autentificat -> Login; dacă e autentificat dar nu a făcut onboarding -> Onboarding; altfel -> Feed
+    val startDestination = remember {
+        if (!isLoggedIn) {
+            Routes.LOGIN
+        } else if (!completed) {
+            Routes.ONBOARDING
+        } else {
+            Routes.FEED
+        }
+    }
 
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+
+    // Ascultăm schimbarea stării de autentificare: dacă token-ul este șters la 401, redirecționăm automat la Login
+    androidx.compose.runtime.LaunchedEffect(isLoggedIn) {
+        if (!isLoggedIn && currentRoute != Routes.LOGIN && currentRoute != Routes.REGISTER && currentRoute != null) {
+            navController.navigate(Routes.LOGIN) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
 
     val topDestinations = TopLevelDestination.entries
     val showBottomBar = topDestinations.any { it.route == currentRoute }
@@ -81,6 +102,7 @@ fun StayFinderApp() {
         StayFinderNavHost(
             navController = navController,
             startDestination = startDestination,
+            onboardingCompleted = completed,
             modifier = Modifier
                 .padding(bottom = innerPadding.calculateBottomPadding())
                 .consumeWindowInsets(innerPadding)

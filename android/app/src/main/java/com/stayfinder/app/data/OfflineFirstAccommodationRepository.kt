@@ -2,52 +2,106 @@ package com.stayfinder.app.data
 
 import com.stayfinder.app.data.db.AccommodationDao
 import com.stayfinder.app.data.db.AccommodationEntity
+import com.stayfinder.app.data.network.StayFinderApiService
 import com.stayfinder.app.model.Accommodation
 import com.stayfinder.app.model.AllInclusivePreference
 import com.stayfinder.app.model.UserPreferences
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Repository care combina sursa "remote" (in Faza 3 FakeAccommodationRepository,
- * iar in Faza 5 API-ul Retrofit) cu baza de date locala Room (`AccommodationDao`).
+ * Repository care combina sursa remote (API-ul Retrofit catre backend Spring Boot)
+ * cu baza de date locala Room (`AccommodationDao`).
  *
  * Strategia offline-first:
- *  1. Incearca sa obtina datele din sursa remote si le salveaza in Room (`upsertAll`).
- *  2. Daca sursa remote esueaza (ex. telefonul e offline) sau la pornire, citeste din
- *     cache-ul Room (`accommodationDao.getAll()`).
- *  3. Ordinea si campul `reason` sunt adaptate dinamic dupa preferintele utilizatorului
- *     salvate la onboarding.
+ *  1. Daca avem retea, citim din `/api/feed` (personalizat cu scor si motiv)
+ *     sau `/api/accommodations` si salvam automat rezultatul in Room (`upsertAll`).
+ *  2. Daca reteaua este indisponibila, citim instantaneu din cache-ul Room
+ *     si activam indicatorul discret `isOfflineMode = true`.
  */
 class OfflineFirstAccommodationRepository(
     private val accommodationDao: AccommodationDao,
     private val preferencesRepository: PreferencesRepository,
-    private val remoteSource: AccommodationRepository = FakeAccommodationRepository()
+    private val fallbackSource: AccommodationRepository = FakeAccommodationRepository(),
+    private val apiServiceProvider: (() -> StayFinderApiService)? = null,
+    private val authRepository: AuthRepository? = null
 ) : AccommodationRepository {
 
+    private val _isOfflineMode = MutableStateFlow(false)
+    override val isOfflineMode: StateFlow<Boolean> = _isOfflineMode.asStateFlow()
+
     override suspend fun getAccommodations(): List<Accommodation> {
-        val list = try {
-            val remote = remoteSource.getAccommodations()
-            accommodationDao.upsertAll(remote.map(AccommodationEntity::fromModel))
-            remote
+        val apiService = apiServiceProvider?.invoke()
+
+        if (apiService != null) {
+            try {
+                val isLoggedIn = authRepository?.isLoggedIn?.value ?: false
+                val remoteDtos = if (isLoggedIn) {
+                    apiService.getFeed(page = 0, size = 50).content
+                } else {
+                    apiService.getAccommodations(page = 0, size = 50).content
+                }
+                val remoteAccommodations = remoteDtos.map { it.toModel() }
+
+                if (remoteAccommodations.isNotEmpty()) {
+                    accommodationDao.upsertAll(remoteAccommodations.map(AccommodationEntity::fromModel))
+                    _isOfflineMode.value = false
+                    return remoteAccommodations
+                }
+            } catch (_: Exception) {
+                // Eroare de rețea -> activăm modul offline și citim din Room
+                val cached = accommodationDao.getAll().map(AccommodationEntity::toModel)
+                if (cached.isNotEmpty()) {
+                    _isOfflineMode.value = true
+                    val prefs = preferencesRepository.userPreferences.value
+                    return rankByPreferences(cached, prefs)
+                }
+            }
+        }
+
+        // Dacă nu avem API sau Room e gol la prima instalare offline, apelăm fallbackSource
+        return try {
+            val list = fallbackSource.getAccommodations()
+            accommodationDao.upsertAll(list.map(AccommodationEntity::fromModel))
+            _isOfflineMode.value = false
+            val prefs = preferencesRepository.userPreferences.value
+            rankByPreferences(list, prefs)
         } catch (e: Exception) {
             val cached = accommodationDao.getAll().map(AccommodationEntity::toModel)
-            if (cached.isNotEmpty()) cached else throw e
+            if (cached.isNotEmpty()) {
+                _isOfflineMode.value = true
+                val prefs = preferencesRepository.userPreferences.value
+                rankByPreferences(cached, prefs)
+            } else {
+                throw e
+            }
         }
-        val prefs = preferencesRepository.userPreferences.value
-        return rankByPreferences(list, prefs)
     }
 
     override suspend fun getAccommodation(id: Long): Accommodation? {
-        val item = accommodationDao.getById(id)?.toModel()
-            ?: runCatching { remoteSource.getAccommodation(id) }.getOrNull()?.also {
-                accommodationDao.upsertAll(listOf(AccommodationEntity.fromModel(it)))
+        val apiService = apiServiceProvider?.invoke()
+        if (apiService != null) {
+            try {
+                val dto = apiService.getAccommodation(id)
+                val model = dto.toModel()
+                accommodationDao.upsertAll(listOf(AccommodationEntity.fromModel(model)))
+                _isOfflineMode.value = false
+                return model
+            } catch (_: Exception) {
+                // Eroare de rețea: căutăm în Room
             }
-        return item?.let { personalizeReason(it, preferencesRepository.userPreferences.value) }
+        }
+
+        val fromRoom = accommodationDao.getById(id)?.toModel()
+        if (fromRoom != null) {
+            _isOfflineMode.value = true
+            return personalizeReason(fromRoom, preferencesRepository.userPreferences.value)
+        }
+
+        return fallbackSource.getAccommodation(id)
     }
 
-    /**
-     * Ordoneaza cazarile local in functie de preferintele alese la onboarding
-     * (pana cand in Faza 5 preluam scorul direct din `/api/feed` de pe backend).
-     */
     private fun rankByPreferences(
         items: List<Accommodation>,
         prefs: UserPreferences

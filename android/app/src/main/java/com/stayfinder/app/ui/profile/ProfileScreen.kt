@@ -49,11 +49,16 @@ import kotlin.math.roundToInt
 @Composable
 fun ProfileScreen(
     onRerunOnboarding: () -> Unit,
+    onLogout: () -> Unit = {},
     viewModel: OnboardingViewModel = viewModel(factory = OnboardingViewModel.Factory)
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val app = context.applicationContext as com.stayfinder.app.StayFinderApplication
+    val currentUser by app.container.authRepository.currentUser.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Profil & Preferințe") }) },
@@ -67,6 +72,40 @@ fun ProfileScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Card utilizator conectat
+            Card(
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = currentUser?.displayName ?: "Utilizator StayFinder",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = currentUser?.email ?: "Conectat prin token JWT",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                app.container.authRepository.logout()
+                                onLogout()
+                            }
+                        },
+                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    ) {
+                        Text("Deconectare")
+                    }
+                }
+            }
+
             Card(
                 shape = MaterialTheme.shapes.large,
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),

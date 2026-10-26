@@ -2,28 +2,59 @@ package com.stayfinder.app.data
 
 import android.content.Context
 import com.stayfinder.app.data.db.StayFinderDatabase
+import com.stayfinder.app.data.network.NetworkClient
+import com.stayfinder.app.data.network.StayFinderApiService
 
 /**
- * "Containerul" de dependente al aplicatiei (Dependency Injection manual).
+ * "Containerul" de dependențe al aplicației (Dependency Injection manual).
  *
- * De ce: ViewModel-urile au nevoie de repository-uri, dar nu trebuie sa le
- * construiasca singure. Le cream O SINGURA DATA aici si le impartim.
- * In Faza 3 am conectat baza de date Room (`StayFinderDatabase`) si DataStore
- * (`LocalPreferencesRepository`), astfel incat favoritele, preferintele si
- * cache-ul de cazari persista pe disc si functioneaza offline.
+ * În Faza 5 integrăm:
+ *  - Retrofit + Moshi (`StayFinderApiService`) pentru comunicare REST cu backend-ul Spring Boot;
+ *  - `AuthInterceptor` care atașează automat JWT-ul și gestionează expirarea (401);
+ *  - `AuthRepository` pentru stocarea token-ului în DataStore și login/register;
+ *  - `BookingRepository` pentru rezervări simulate;
+ *  - Room (`StayFinderDatabase`) pentru persistență și funcționare offline-first.
  */
 class AppContainer(context: Context) {
     private val database: StayFinderDatabase = StayFinderDatabase.getInstance(context)
 
+    // ApiService-ul este creat leneș cu referință la tokenProvider din authRepository
+    val apiService: StayFinderApiService by lazy {
+        NetworkClient.createApiService(
+            tokenProvider = { authRepository.currentToken },
+            onUnauthorized = { authRepository.clearTokenSync() }
+        )
+    }
+
+    val authRepository: AuthRepository =
+        DefaultAuthRepository(
+            context = context.applicationContext,
+            apiServiceProvider = { apiService }
+        )
+
+    val bookingRepository: BookingRepository =
+        NetworkBookingRepository(
+            apiServiceProvider = { apiService }
+        )
+
     val preferencesRepository: PreferencesRepository =
-        LocalPreferencesRepository(context.applicationContext, database.userPreferenceDao())
+        LocalPreferencesRepository(
+            context = context.applicationContext,
+            userPreferenceDao = database.userPreferenceDao(),
+            apiServiceProvider = { apiService }
+        )
 
     val favoritesRepository: FavoritesRepository =
-        RoomFavoritesRepository(database.favoriteDao())
+        RoomFavoritesRepository(
+            favoriteDao = database.favoriteDao(),
+            apiServiceProvider = { apiService }
+        )
 
     val accommodationRepository: AccommodationRepository =
         OfflineFirstAccommodationRepository(
             accommodationDao = database.accommodationDao(),
-            preferencesRepository = preferencesRepository
+            preferencesRepository = preferencesRepository,
+            apiServiceProvider = { apiService },
+            authRepository = authRepository
         )
 }

@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 data class FeedUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
+    val isOffline: Boolean = false,
     val errorMessage: String? = null,
     val allItems: List<Accommodation> = emptyList(),
     val selectedType: AccommodationType? = null, // null = "Toate"
@@ -58,11 +59,21 @@ class FeedViewModel(
 
     init {
         load()
+        // Observăm modul offline
+        viewModelScope.launch {
+            accommodationRepository.isOfflineMode.collect { offline ->
+                _uiState.update { it.copy(isOffline = offline) }
+            }
+        }
         // Observam favoritele: orice schimbare (de pe orice ecran) ajunge in starea feed-ului.
         viewModelScope.launch {
             favoritesRepository.favoriteIds.collect { ids ->
                 _uiState.update { it.copy(favoriteIds = ids) }
             }
+        }
+        // Sincronizăm favoritele cu backend-ul la pornire
+        viewModelScope.launch {
+            favoritesRepository.syncWithBackend()
         }
         // Daca utilizatorul isi modifica preferintele (la onboarding sau din Profil),
         // reincarcam si reordonam feed-ul.

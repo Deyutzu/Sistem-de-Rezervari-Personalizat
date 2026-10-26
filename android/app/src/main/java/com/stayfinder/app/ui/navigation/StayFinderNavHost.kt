@@ -15,7 +15,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.stayfinder.app.ui.components.EmptyView
+import com.stayfinder.app.ui.auth.LoginScreen
+import com.stayfinder.app.ui.auth.RegisterScreen
+import com.stayfinder.app.ui.bookings.BookingsScreen
 import com.stayfinder.app.ui.detail.DetailScreen
 import com.stayfinder.app.ui.favorites.FavoritesScreen
 import com.stayfinder.app.ui.feed.FeedScreen
@@ -31,6 +33,7 @@ import com.stayfinder.app.ui.profile.ProfileScreen
 fun StayFinderNavHost(
     navController: NavHostController,
     startDestination: String,
+    onboardingCompleted: Boolean,
     modifier: Modifier = Modifier
 ) {
     NavHost(
@@ -38,6 +41,33 @@ fun StayFinderNavHost(
         startDestination = startDestination,
         modifier = modifier
     ) {
+        composable(Routes.LOGIN) {
+            LoginScreen(
+                onLoginSuccess = {
+                    val nextRoute = if (onboardingCompleted) Routes.FEED else Routes.ONBOARDING
+                    navController.navigate(nextRoute) {
+                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    }
+                },
+                onNavigateToRegister = {
+                    navController.navigate(Routes.REGISTER)
+                }
+            )
+        }
+
+        composable(Routes.REGISTER) {
+            RegisterScreen(
+                onRegisterSuccess = {
+                    navController.navigate(Routes.ONBOARDING) {
+                        popUpTo(Routes.REGISTER) { inclusive = true }
+                    }
+                },
+                onNavigateToLogin = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
         composable(Routes.ONBOARDING) {
             OnboardingScreen(
                 onFinished = {
@@ -57,15 +87,17 @@ fun StayFinderNavHost(
         }
 
         composable(Routes.BOOKINGS) {
-            ComingSoonScreen(
-                title = "Rezervări",
-                message = "Aici vei vedea rezervările tale."
-            )
+            BookingsScreen(onAccommodationClick = { id -> navController.navigate(Routes.detail(id)) })
         }
 
         composable(Routes.PROFILE) {
             ProfileScreen(
-                onRerunOnboarding = { navController.navigate(Routes.ONBOARDING) }
+                onRerunOnboarding = { navController.navigate(Routes.ONBOARDING) },
+                onLogout = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -77,19 +109,5 @@ fun StayFinderNavHost(
         ) {
             DetailScreen(onBack = { navController.popBackStack() })
         }
-    }
-}
-
-/** Ecran temporar pentru tab-urile implementate in fazele urmatoare. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ComingSoonScreen(title: String, message: String) {
-    Scaffold(topBar = { TopAppBar(title = { Text(title) }) }) { padding ->
-        EmptyView(
-            icon = if (title == "Profil") Icons.Filled.Person else Icons.Filled.DateRange,
-            title = "În curând",
-            message = message,
-            modifier = Modifier.padding(padding)
-        )
     }
 }

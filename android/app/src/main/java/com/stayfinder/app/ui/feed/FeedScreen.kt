@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -71,6 +72,23 @@ fun FeedScreen(
     ) { innerPadding ->
         Column(Modifier.padding(innerPadding)) {
             TypeFilterRow(selected = state.selectedType, onSelected = viewModel::onTypeSelected)
+
+            if (state.isOffline) {
+                androidx.compose.material3.Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        text = "Mod offline: date servite din cache-ul local Room",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
+            }
 
             // "when" alege ce desenam in functie de stare: loading / eroare / gol / lista
             when {

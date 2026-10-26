@@ -35,7 +35,8 @@ sealed interface DetailUiState {
 class DetailViewModel(
     savedStateHandle: SavedStateHandle,
     private val accommodationRepository: AccommodationRepository,
-    private val favoritesRepository: FavoritesRepository
+    private val favoritesRepository: FavoritesRepository,
+    private val bookingRepository: com.stayfinder.app.data.BookingRepository
 ) : ViewModel() {
 
     private val accommodationId: Long = checkNotNull(savedStateHandle[Routes.ARG_ID])
@@ -76,6 +77,10 @@ class DetailViewModel(
         viewModelScope.launch { favoritesRepository.toggle(accommodationId) }
     }
 
+    suspend fun bookStay(checkIn: String, checkOut: String, guests: Int): Result<com.stayfinder.app.model.Booking> {
+        return bookingRepository.createBooking(accommodationId, checkIn, checkOut, guests)
+    }
+
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -83,7 +88,8 @@ class DetailViewModel(
                 DetailViewModel(
                     savedStateHandle = createSavedStateHandle(),
                     accommodationRepository = app.container.accommodationRepository,
-                    favoritesRepository = app.container.favoritesRepository
+                    favoritesRepository = app.container.favoritesRepository,
+                    bookingRepository = app.container.bookingRepository
                 )
             }
         }

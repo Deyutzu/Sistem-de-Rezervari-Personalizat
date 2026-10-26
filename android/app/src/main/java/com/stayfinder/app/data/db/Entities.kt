@@ -33,6 +33,7 @@ data class AccommodationEntity(
     val longitude: Double,
     val tagsCsv: String,
     val suitableFor: String,
+    val score: Double? = null,
     val reason: String?
 ) {
     fun toModel(): Accommodation = Accommodation(
@@ -51,6 +52,7 @@ data class AccommodationEntity(
         longitude = longitude,
         tags = if (tagsCsv.isBlank()) emptyList() else tagsCsv.split("|"),
         suitableFor = runCatching { TravelType.valueOf(suitableFor) }.getOrDefault(TravelType.COUPLE),
+        score = score,
         reason = reason
     )
 
@@ -71,6 +73,7 @@ data class AccommodationEntity(
             longitude = a.longitude,
             tagsCsv = a.tags.joinToString("|"),
             suitableFor = a.suitableFor.name,
+            score = a.score,
             reason = a.reason
         )
     }

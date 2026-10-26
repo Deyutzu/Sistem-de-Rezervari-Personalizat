@@ -72,5 +72,11 @@ dependencies {
     // Preferences DataStore (flag onboarding + JWT in faza 5)
     implementation(libs.androidx.datastore.preferences)
 
+    // Retrofit + Moshi (Faza 5: conectare la backend Spring Boot)
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.converter.moshi)
+    implementation(libs.moshi.kotlin)
+    implementation(libs.okhttp.logging)
+
     testImplementation(libs.junit)
 }

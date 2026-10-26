@@ -14,6 +14,10 @@ import com.stayfinder.app.model.Accommodation
  */
 interface AccommodationRepository {
 
+    /** Indică dacă ultimele date au fost servite din cache-ul offline Room. */
+    val isOfflineMode: kotlinx.coroutines.flow.StateFlow<Boolean>
+        get() = kotlinx.coroutines.flow.MutableStateFlow(false)
+
     /** Lista de cazari pentru feed. Arunca exceptie daca datele nu pot fi obtinute. */
     suspend fun getAccommodations(): List<Accommodation>
 

@@ -24,6 +24,8 @@ data class Accommodation(
     val longitude: Double,
     val tags: List<String>,
     val suitableFor: TravelType,
+    // Scorul de relevanta calculat de backend (0.0..1.0)
+    val score: Double? = null,
     // Explicatia recomandarii (ex. "Similar cu Dolomitii din Italia").
     // In faza 5 vine din /api/feed; pana atunci e text demonstrativ sau null.
     val reason: String? = null

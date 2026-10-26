@@ -42,6 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -76,6 +77,10 @@ fun DetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    var showBookingDialog by remember { androidx.compose.runtime.mutableStateOf(false) }
+    var isBookingInProgress by remember { androidx.compose.runtime.mutableStateOf(false) }
+    var bookingErrorMessage by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
@@ -84,8 +89,8 @@ fun DetailScreen(
                 BookingBar(
                     pricePerNight = success.accommodation.pricePerNight,
                     onBook = {
-                        // Rezervarea reala (alegere date, persoane, confirmare) vine in faza 5
-                        scope.launch { snackbarHostState.showSnackbar("Rezervarea va fi disponibilă în curând") }
+                        bookingErrorMessage = null
+                        showBookingDialog = true
                     }
                 )
             }
@@ -97,13 +102,40 @@ fun DetailScreen(
                 ErrorView(message = s.message, onRetry = viewModel::load)
                 BackButton(onBack, Modifier.padding(8.dp))
             }
-            is DetailUiState.Success -> DetailContent(
-                accommodation = s.accommodation,
-                isFavorite = s.isFavorite,
-                onBack = onBack,
-                onToggleFavorite = viewModel::onToggleFavorite,
-                modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
-            )
+            is DetailUiState.Success -> {
+                DetailContent(
+                    accommodation = s.accommodation,
+                    isFavorite = s.isFavorite,
+                    onBack = onBack,
+                    onToggleFavorite = viewModel::onToggleFavorite,
+                    modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
+                )
+
+                if (showBookingDialog) {
+                    BookingDialog(
+                        accommodation = s.accommodation,
+                        isBooking = isBookingInProgress,
+                        errorMessage = bookingErrorMessage,
+                        onDismiss = {
+                            if (!isBookingInProgress) showBookingDialog = false
+                        },
+                        onConfirm = { checkIn, checkOut, guests ->
+                            isBookingInProgress = true
+                            bookingErrorMessage = null
+                            scope.launch {
+                                val result = viewModel.bookStay(checkIn, checkOut, guests)
+                                isBookingInProgress = false
+                                result.onSuccess {
+                                    showBookingDialog = false
+                                    snackbarHostState.showSnackbar("Rezervare confirmată cu succes!")
+                                }.onFailure { error ->
+                                    bookingErrorMessage = error.message ?: "Eroare la crearea rezervării. Verifică datele."
+                                }
+                            }
+                        }
+                    )
+                }
+            }
         }
     }
 }

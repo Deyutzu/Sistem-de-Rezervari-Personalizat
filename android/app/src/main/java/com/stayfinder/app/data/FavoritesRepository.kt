@@ -23,14 +23,17 @@ import kotlinx.coroutines.flow.update
 interface FavoritesRepository {
     val favoriteIds: StateFlow<Set<Long>>
     suspend fun toggle(accommodationId: Long)
+    suspend fun syncWithBackend()
 }
 
 /**
- * Implementare persistenta cu Room (Faza 3): favoritele raman salvate in SQLite
- * si dupa inchiderea aplicatiei / repornirea telefonului.
+ * Implementare persistenta cu Room si sincronizare backend (Faza 5):
+ * favoritele apar instantaneu din SQLite-ul local (offline-first),
+ * iar apelurile catre /api/me/favorites sincronizeaza datele cu serverul.
  */
 class RoomFavoritesRepository(
-    private val favoriteDao: FavoriteDao
+    private val favoriteDao: FavoriteDao,
+    private val apiServiceProvider: (() -> com.stayfinder.app.data.network.StayFinderApiService)? = null
 ) : FavoritesRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -40,11 +43,38 @@ class RoomFavoritesRepository(
             .map { it.toSet() }
             .stateIn(scope, SharingStarted.Eagerly, emptySet())
 
+    override suspend fun syncWithBackend() {
+        val apiService = apiServiceProvider?.invoke() ?: return
+        try {
+            val remoteFavorites = apiService.getFavorites()
+            val remoteIds = remoteFavorites.map { it.accommodation.id }.toSet()
+            // Sincronizăm în Room
+            for (id in remoteIds) {
+                if (!favoriteDao.isFavorite(id)) {
+                    favoriteDao.insert(FavoriteEntity(accommodationId = id))
+                }
+            }
+        } catch (_: Exception) {
+            // Dacă eșuează rețeaua, Room rămâne sursa de adevăr locală
+        }
+    }
+
     override suspend fun toggle(accommodationId: Long) {
-        if (favoriteDao.isFavorite(accommodationId)) {
+        val isCurrentlyFavorite = favoriteDao.isFavorite(accommodationId)
+        if (isCurrentlyFavorite) {
             favoriteDao.deleteById(accommodationId)
+            try {
+                apiServiceProvider?.invoke()?.removeFavorite(accommodationId)
+            } catch (_: Exception) {
+                // Rămâne șters local
+            }
         } else {
             favoriteDao.insert(FavoriteEntity(accommodationId = accommodationId))
+            try {
+                apiServiceProvider?.invoke()?.addFavorite(accommodationId)
+            } catch (_: Exception) {
+                // Rămâne salvat local
+            }
         }
     }
 }
@@ -59,5 +89,9 @@ class InMemoryFavoritesRepository : FavoritesRepository {
         _favoriteIds.update { current ->
             if (accommodationId in current) current - accommodationId else current + accommodationId
         }
+    }
+
+    override suspend fun syncWithBackend() {
+        // No-op în memorie
     }
 }

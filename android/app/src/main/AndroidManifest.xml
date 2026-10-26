@@ -13,7 +13,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
-        android:theme="@style/Theme.StayFinder">
+        android:theme="@style/Theme.StayFinder"
+        android:usesCleartextTraffic="true">
 
         <!-- O singura Activity: toate ecranele sunt composable-uri, iar
              trecerea intre ele o face Navigation Compose. -->

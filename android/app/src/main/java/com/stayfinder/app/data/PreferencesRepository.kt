@@ -35,7 +35,8 @@ interface PreferencesRepository {
 
 class LocalPreferencesRepository(
     private val context: Context,
-    private val userPreferenceDao: UserPreferenceDao
+    private val userPreferenceDao: UserPreferenceDao,
+    private val apiServiceProvider: (() -> com.stayfinder.app.data.network.StayFinderApiService)? = null
 ) : PreferencesRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -64,6 +65,15 @@ class LocalPreferencesRepository(
         userPreferenceDao.upsert(UserPreferenceEntity.fromModel(preferences))
         context.dataStore.edit { prefs ->
             prefs[KEY_ONBOARDING_COMPLETED] = true
+        }
+
+        // Sincronizare automată cu backend-ul dacă există conexiune și serviciu API disponibil
+        try {
+            apiServiceProvider?.invoke()?.updatePreferences(
+                com.stayfinder.app.data.network.NetworkUserPreferenceDto.fromModel(preferences)
+            )
+        } catch (_: Exception) {
+            // Dacă utilizatorul este offline, preferințele rămân salvate local în Room
         }
     }
 
