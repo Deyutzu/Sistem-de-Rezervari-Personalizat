@@ -57,6 +57,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         // Vizualizare cazări publică
                         .requestMatchers(HttpMethod.GET, "/api/accommodations/**").permitAll()
+                        // Curs valutar public
+                        .requestMatchers(HttpMethod.GET, "/api/exchange-rates/**").permitAll()
                         // Documentație Swagger / OpenAPI
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         // Consola H2 (în modul dezvoltare)

@@ -114,6 +114,13 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
     }
 
+    /** 502 - serviciu extern eșuat (Open-Meteo, Frankfurter etc.). */
+    @ExceptionHandler(ExternalServiceException.class)
+    public ResponseEntity<ErrorResponse> handleExternalService(ExternalServiceException ex, HttpServletRequest req) {
+        log.warn("Eroare serviciu extern la {}: {}", req.getRequestURI(), ex.getMessage());
+        return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), req, null);
+    }
+
     /** 500 - orice altceva. Logăm detaliile pe server, dar NU le trimitem clientului (securitate). */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex, HttpServletRequest req) {

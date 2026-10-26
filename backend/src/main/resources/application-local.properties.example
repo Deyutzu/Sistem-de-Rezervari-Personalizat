@@ -8,3 +8,8 @@ DB_PASSWORD=parola-ta-locala
 
 # Faza 4: cheia secretă pentru semnarea token-urilor JWT (minim 32 de caractere)
 # app.jwt.secret=schimba-ma-cu-un-sir-aleator-lung-de-cel-putin-32-caractere
+
+# Faza 5B: cheie OpenTripMap (opțională, doar dacă dorești obiective turistice din exterior)
+# Înregistrare gratuită: https://opentripmap.io/product
+# OPENTRIPMAP_API_KEY=cheia-ta-opentripmap
+

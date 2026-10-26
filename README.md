@@ -14,7 +14,9 @@ Platformă de descoperire și rezervare de cazări cu **feed personalizat** în 
 | 2 | Android: listă + detaliu, navigare | ✅ |
 | 3 | Android: Room, onboarding | ✅ |
 | 4 | Backend: JWT, preferințe, favorite, rezervări, recomandări | ✅ |
-| 5 | Android ↔ backend (Retrofit), feed personalizat | ⏳ |
+| 5A | Android: Retrofit, JWT DataStore, feed dinamic, rezervări | ✅ |
+| 5B | Backend: API-uri externe (Open-Meteo, Frankfurter, OpenTripMap) | ✅ |
+| 5C | Android & Web: afișare vreme, conversie RON și obiective turistice | ⏳ |
 | 6 | Web Thymeleaf + panou admin | ⏳ |
 | 7 | Finisaje + funcționalitate avansată | ⏳ |
 
@@ -53,6 +55,25 @@ Platformă de descoperire și rezervare de cazări cu **feed personalizat** în 
 | GET / POST | `/api/me/bookings` | User | Listare și creare rezervare nouă |
 | PUT | `/api/me/bookings/{id}/cancel` | User | Anulare rezervare |
 | POST / PUT / DELETE | `/api/admin/accommodations[/{id}]` | Admin | Adăugare, editare și ștergere cazare |
+| GET | `/api/accommodations/{id}/weather` | Public | Prognoză meteo 7 zile pentru cazare (Open-Meteo, coduri WMO mapate) |
+| GET | `/api/exchange-rates` | Public | Cursuri valutare (Frankfurter, EUR -> RON/USD/GBP, cache 6h cu fallback) |
+| GET | `/api/accommodations/{id}/nearby` | Public | Obiective turistice în apropiere (OpenTripMap, rază 5 km, opțional cu cheie) |
+
+## API-uri Externe Integrate (Sub-faza 5B)
+
+Aplicația Android **nu apelează direct niciun API extern**. Toate apelurile trec prin backend prin `RestClient` (Spring 6.1+), cu timeout-uri de conectare/citire de 5 secunde:
+1. **Open-Meteo (fără cheie API)**:
+   - Endpoint backend: `GET /api/accommodations/{id}/weather`
+   - Folosește latitudinea și longitudinea cazării pentru prognoza pe 7 zile (temp min/max, precipitații, cod meteo WMO).
+   - Backend-ul mapează codurile WMO în text românesc și denumiri simple de iconițe (`sun`, `clouds`, `rain`, `snow`, `thunder`).
+2. **Frankfurter (fără cheie API)**:
+   - Endpoint backend: `GET /api/exchange-rates?base=EUR`
+   - Furnizează cursurile de schimb oficiale BCE (EUR -> RON, USD, GBP).
+   - Include cache în memorie cu Caffeine (expirare la 6 ore) și fallback la ultimul curs valid dacă serviciul extern devine indisponibil.
+3. **OpenTripMap (opțional, cu cheie API)**:
+   - Endpoint backend: `GET /api/accommodations/{id}/nearby`
+   - Caută atracții pe o rază de 5 km în jurul cazării.
+   - Cheia `OPENTRIPMAP_API_KEY` se configurează în `application-local.properties` (fișier în `.gitignore`). Dacă lipsește, endpoint-ul întoarce o listă goală `[]` fără să crape.
 
 Exemplu: `GET /api/accommodations?type=MOUNTAIN&country=Austria&maxPrice=200&page=0&size=10`
 
