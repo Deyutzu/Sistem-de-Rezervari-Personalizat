@@ -127,3 +127,65 @@ data class UserPreferenceEntity(
         )
     }
 }
+
+/**
+ * Cache local pentru prognoza meteo a unei cazări (Open-Meteo).
+ * Permite afișarea prognozei chiar și atunci când dispozitivul este offline.
+ */
+@Entity(tableName = "weather_cache")
+data class WeatherCacheEntity(
+    @PrimaryKey val accommodationId: Long,
+    val locationName: String,
+    val note: String,
+    val daysSerialized: String,
+    val updatedAt: Long = System.currentTimeMillis()
+) {
+    fun toDailyWeatherList(): List<com.stayfinder.app.model.DailyWeather> {
+        if (daysSerialized.isBlank()) return emptyList()
+        return daysSerialized.lines().mapNotNull { line ->
+            val parts = line.split(";")
+            if (parts.size >= 6) {
+                com.stayfinder.app.model.DailyWeather(
+                    date = parts[0],
+                    minTemp = parts[1].toDoubleOrNull() ?: 0.0,
+                    maxTemp = parts[2].toDoubleOrNull() ?: 0.0,
+                    precipitation = parts[3].toDoubleOrNull() ?: 0.0,
+                    description = parts[4],
+                    icon = parts[5]
+                )
+            } else null
+        }
+    }
+
+    companion object {
+        fun fromModel(
+            accommodationId: Long,
+            locationName: String,
+            note: String,
+            days: List<com.stayfinder.app.model.DailyWeather>,
+            updatedAt: Long = System.currentTimeMillis()
+        ): WeatherCacheEntity {
+            val serialized = days.joinToString("\n") { d ->
+                "${d.date};${d.minTemp};${d.maxTemp};${d.precipitation};${d.description};${d.icon}"
+            }
+            return WeatherCacheEntity(
+                accommodationId = accommodationId,
+                locationName = locationName,
+                note = note,
+                daysSerialized = serialized,
+                updatedAt = updatedAt
+            )
+        }
+    }
+}
+
+/**
+ * Cache local pentru cursul valutar (Frankfurter).
+ * Memorează rata EUR -> RON și timestamp-ul ultimei actualizări.
+ */
+@Entity(tableName = "exchange_rate_cache")
+data class ExchangeRateCacheEntity(
+    @PrimaryKey val baseCurrency: String,
+    val ronRate: Double,
+    val updatedAt: Long = System.currentTimeMillis()
+)

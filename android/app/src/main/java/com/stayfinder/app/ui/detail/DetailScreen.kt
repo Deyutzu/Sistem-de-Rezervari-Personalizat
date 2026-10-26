@@ -53,7 +53,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import com.stayfinder.app.model.Accommodation
+import com.stayfinder.app.model.NearbyPlace
+import com.stayfinder.app.model.WeatherForecast
 import com.stayfinder.app.ui.components.ErrorView
 import com.stayfinder.app.ui.components.FavoriteButton
 import com.stayfinder.app.ui.components.LoadingView
@@ -88,6 +92,7 @@ fun DetailScreen(
             (state as? DetailUiState.Success)?.let { success ->
                 BookingBar(
                     pricePerNight = success.accommodation.pricePerNight,
+                    ronRate = success.ronRate,
                     onBook = {
                         bookingErrorMessage = null
                         showBookingDialog = true
@@ -106,6 +111,9 @@ fun DetailScreen(
                 DetailContent(
                     accommodation = s.accommodation,
                     isFavorite = s.isFavorite,
+                    weather = s.weather,
+                    ronRate = s.ronRate,
+                    nearbyPlaces = s.nearbyPlaces,
                     onBack = onBack,
                     onToggleFavorite = viewModel::onToggleFavorite,
                     modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
@@ -145,6 +153,9 @@ fun DetailScreen(
 private fun DetailContent(
     accommodation: Accommodation,
     isFavorite: Boolean,
+    weather: WeatherForecast?,
+    ronRate: Double?,
+    nearbyPlaces: List<NearbyPlace>,
     onBack: () -> Unit,
     onToggleFavorite: () -> Unit,
     modifier: Modifier = Modifier
@@ -188,7 +199,17 @@ private fun DetailContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RatingLabel(accommodation.rating)
                     Spacer(Modifier.width(16.dp))
-                    PriceLabel(accommodation.pricePerNight)
+                    Column {
+                        PriceLabel(accommodation.pricePerNight)
+                        if (ronRate != null) {
+                            val priceRon = accommodation.pricePerNight * ronRate
+                            Text(
+                                text = String.format(Locale.US, "~ %.0f RON / noapte", priceRon),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
             }
 
@@ -230,6 +251,134 @@ private fun DetailContent(
             // ---- Locatie ----
             Section(title = "Locație") {
                 LocationCard(accommodation)
+            }
+
+            // ---- Vremea în următoarele zile (Open-Meteo) ----
+            if (weather != null && weather.days.isNotEmpty()) {
+                HorizontalDivider()
+                Section(title = "Vremea în următoarele zile") {
+                    WeatherSection(weather)
+                }
+            }
+
+            // ---- Obiective turistice aproape (OpenTripMap) ----
+            if (nearbyPlaces.isNotEmpty()) {
+                HorizontalDivider()
+                Section(title = "Aproape de cazare (rază 5 km)") {
+                    NearbyPlacesSection(nearbyPlaces)
+                }
+            }
+        }
+    }
+}
+
+/** Rând orizontal de carduri meteo cu iconiță, min/max și timestamp de cache. */
+@Composable
+private fun WeatherSection(weather: WeatherForecast) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        val timeFormatted = remember(weather.updatedAt) {
+            val sdf = java.text.SimpleDateFormat("HH:mm", Locale.getDefault())
+            sdf.format(java.util.Date(weather.updatedAt))
+        }
+        Text(
+            text = "Actualizat la $timeFormatted • ${weather.note}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.outline
+        )
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(vertical = 4.dp)
+        ) {
+            items(weather.days) { day ->
+                Card(
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(12.dp)
+                            .width(88.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = day.date.takeLast(5).replace("-", "."),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        val iconChar = when (day.icon) {
+                            "sun" -> "☀️"
+                            "clouds" -> "⛅"
+                            "rain" -> "🌧️"
+                            "snow" -> "❄️"
+                            "thunder" -> "⛈️"
+                            else -> "🌤️"
+                        }
+                        Text(iconChar, style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            text = day.description,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "${day.minTemp.toInt()}° / ${day.maxTemp.toInt()}°",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        )
+                        if (day.precipitation > 0) {
+                            Text(
+                                text = "💧 ${day.precipitation}mm",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Lista de obiective turistice în apropiere. */
+@Composable
+private fun NearbyPlacesSection(places: List<NearbyPlace>) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        places.forEach { place ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(place.name, style = MaterialTheme.typography.titleSmall)
+                        Text(place.category, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                    }
+                    val distStr = if (place.distanceMeters >= 1000) {
+                        String.format(Locale.US, "%.1f km", place.distanceMeters / 1000.0)
+                    } else {
+                        "${place.distanceMeters.toInt()} m"
+                    }
+                    Surface(
+                        shape = MaterialTheme.shapes.extraSmall,
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Text(
+                            text = distStr,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
             }
         }
     }
@@ -289,9 +438,9 @@ private fun LocationCard(accommodation: Accommodation) {
     }
 }
 
-/** Bara fixa de jos: pretul + butonul principal de actiune. */
+/** Bara fixa de jos: pretul (EUR + aproximare RON) + butonul principal de actiune. */
 @Composable
-private fun BookingBar(pricePerNight: Double, onBook: () -> Unit) {
+private fun BookingBar(pricePerNight: Double, ronRate: Double?, onBook: () -> Unit) {
     Surface(tonalElevation = 3.dp, shadowElevation = 8.dp) {
         Row(
             modifier = Modifier
@@ -300,7 +449,17 @@ private fun BookingBar(pricePerNight: Double, onBook: () -> Unit) {
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PriceLabel(pricePerNight, Modifier.weight(1f))
+            Column(Modifier.weight(1f)) {
+                PriceLabel(pricePerNight)
+                if (ronRate != null) {
+                    val priceRon = pricePerNight * ronRate
+                    Text(
+                        text = String.format(Locale.US, "~ %.0f RON / noapte", priceRon),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
             Button(onClick = onBook, contentPadding = PaddingValues(horizontal = 32.dp, vertical = 12.dp)) {
                 Text("Rezervă")
             }

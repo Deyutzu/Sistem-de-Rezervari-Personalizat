@@ -10,8 +10,11 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.stayfinder.app.StayFinderApplication
 import com.stayfinder.app.data.AccommodationRepository
+import com.stayfinder.app.data.ExternalDataRepository
 import com.stayfinder.app.data.FavoritesRepository
 import com.stayfinder.app.model.Accommodation
+import com.stayfinder.app.model.NearbyPlace
+import com.stayfinder.app.model.WeatherForecast
 import com.stayfinder.app.ui.navigation.Routes
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,20 +26,29 @@ import kotlinx.coroutines.launch
 sealed interface DetailUiState {
     data object Loading : DetailUiState
     data class Error(val message: String) : DetailUiState
-    data class Success(val accommodation: Accommodation, val isFavorite: Boolean) : DetailUiState
+    data class Success(
+        val accommodation: Accommodation,
+        val isFavorite: Boolean,
+        val weather: WeatherForecast? = null,
+        val ronRate: Double? = null,
+        val rateUpdatedAt: Long? = null,
+        val nearbyPlaces: List<NearbyPlace> = emptyList()
+    ) : DetailUiState
 }
 
 /**
  * ViewModel-ul ecranului de detaliu.
  *
- * Id-ul cazarii vine din ruta de navigare ("accommodation/{id}") prin SavedStateHandle,
- * care pastreaza argumentele si dupa ce sistemul omoara procesul in fundal.
+ * Gestionează încărcarea datelor cazării, sincronizarea stării de favorite,
+ * precum și afișarea prognozei meteo (Open-Meteo), conversiei în RON (Frankfurter)
+ * și a obiectivelor din jur (OpenTripMap) salvate în cache local Room.
  */
 class DetailViewModel(
     savedStateHandle: SavedStateHandle,
     private val accommodationRepository: AccommodationRepository,
     private val favoritesRepository: FavoritesRepository,
-    private val bookingRepository: com.stayfinder.app.data.BookingRepository
+    private val bookingRepository: com.stayfinder.app.data.BookingRepository,
+    private val externalDataRepository: ExternalDataRepository
 ) : ViewModel() {
 
     private val accommodationId: Long = checkNotNull(savedStateHandle[Routes.ARG_ID])
@@ -46,11 +58,35 @@ class DetailViewModel(
 
     init {
         load()
-        // Tinem inimioara sincronizata cu favoritele (pot fi schimbate si din alt ecran)
+
+        // Sincronizare favorite
         viewModelScope.launch {
             favoritesRepository.favoriteIds.collect { ids ->
                 _uiState.update { state ->
                     if (state is DetailUiState.Success) state.copy(isFavorite = accommodationId in ids) else state
+                }
+            }
+        }
+
+        // Observare vreme din Room cache (cu re-emitere automată la refresh)
+        viewModelScope.launch {
+            externalDataRepository.observeWeather(accommodationId).collect { forecast ->
+                _uiState.update { state ->
+                    if (state is DetailUiState.Success) state.copy(weather = forecast) else state
+                }
+            }
+        }
+
+        // Observare curs valutar EUR -> RON din Room cache
+        viewModelScope.launch {
+            externalDataRepository.observeExchangeRate("EUR").collect { rateEntity ->
+                _uiState.update { state ->
+                    if (state is DetailUiState.Success) {
+                        state.copy(
+                            ronRate = rateEntity?.ronRate,
+                            rateUpdatedAt = rateEntity?.updatedAt
+                        )
+                    } else state
                 }
             }
         }
@@ -69,6 +105,18 @@ class DetailViewModel(
                 }
             } catch (e: Exception) {
                 DetailUiState.Error("Nu am putut încărca detaliile. Încearcă din nou.")
+            }
+
+            // Declanșăm actualizările externe în fundal dacă cazarea a fost încărcată
+            if (_uiState.value is DetailUiState.Success) {
+                launch { externalDataRepository.refreshWeather(accommodationId) }
+                launch { externalDataRepository.refreshExchangeRate("EUR") }
+                launch {
+                    val places = externalDataRepository.getNearbyPlaces(accommodationId)
+                    _uiState.update { state ->
+                        if (state is DetailUiState.Success) state.copy(nearbyPlaces = places) else state
+                    }
+                }
             }
         }
     }
@@ -89,7 +137,8 @@ class DetailViewModel(
                     savedStateHandle = createSavedStateHandle(),
                     accommodationRepository = app.container.accommodationRepository,
                     favoritesRepository = app.container.favoritesRepository,
-                    bookingRepository = app.container.bookingRepository
+                    bookingRepository = app.container.bookingRepository,
+                    externalDataRepository = app.container.externalDataRepository
                 )
             }
         }

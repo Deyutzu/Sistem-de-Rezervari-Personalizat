@@ -111,7 +111,11 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Faza 6: spring-boot-starter-thymeleaf + thymeleaf-extras-springsecurity6 -->
+        <!-- Interfață Web (Thymeleaf) pentru Faza 5C și Faza 6 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

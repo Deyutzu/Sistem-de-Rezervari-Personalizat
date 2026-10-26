@@ -61,3 +61,35 @@ interface UserPreferenceDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: UserPreferenceEntity)
 }
+
+/**
+ * DAO pentru cache-ul prognozei meteo.
+ */
+@Dao
+interface WeatherCacheDao {
+
+    @Query("SELECT * FROM weather_cache WHERE accommodationId = :id LIMIT 1")
+    fun observeWeather(id: Long): Flow<WeatherCacheEntity?>
+
+    @Query("SELECT * FROM weather_cache WHERE accommodationId = :id LIMIT 1")
+    suspend fun getWeatherOnce(id: Long): WeatherCacheEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveWeather(entity: WeatherCacheEntity)
+}
+
+/**
+ * DAO pentru cache-ul cursului valutar.
+ */
+@Dao
+interface ExchangeRateCacheDao {
+
+    @Query("SELECT * FROM exchange_rate_cache WHERE baseCurrency = :baseCurrency LIMIT 1")
+    fun observeRate(baseCurrency: String): Flow<ExchangeRateCacheEntity?>
+
+    @Query("SELECT * FROM exchange_rate_cache WHERE baseCurrency = :baseCurrency LIMIT 1")
+    suspend fun getRateOnce(baseCurrency: String): ExchangeRateCacheEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveRate(entity: ExchangeRateCacheEntity)
+}

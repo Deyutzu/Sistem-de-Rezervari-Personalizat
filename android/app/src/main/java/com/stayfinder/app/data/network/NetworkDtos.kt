@@ -151,3 +151,33 @@ data class NetworkBookingDto(
         createdAt = createdAt
     )
 }
+
+// --- Faza 5C: DTO-uri pentru integrările externe (Vreme, Curs Valutar, Atracții) ---
+
+data class NetworkDailyWeatherDto(
+    val date: String,
+    val tempMin: Double,
+    val tempMax: Double,
+    val precipitation: Double,
+    val description: String,
+    val icon: String
+)
+
+data class NetworkWeatherForecastDto(
+    val accommodationId: Long,
+    val locationName: String,
+    val note: String,
+    val days: List<NetworkDailyWeatherDto>
+)
+
+data class NetworkExchangeRatesDto(
+    val base: String,
+    val date: String,
+    val rates: Map<String, Double>
+)
+
+data class NetworkNearbyPlaceDto(
+    val name: String,
+    val category: String,
+    val distanceMeters: Double
+)

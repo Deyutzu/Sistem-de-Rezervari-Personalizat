@@ -57,4 +57,14 @@ interface StayFinderApiService {
 
     @PUT("api/me/bookings/{id}/cancel")
     suspend fun cancelBooking(@Path("id") id: Long): NetworkBookingDto
+
+    // --- Faza 5C: Integrări externe expuse prin backend ---
+    @GET("api/accommodations/{id}/weather")
+    suspend fun getWeather(@Path("id") accommodationId: Long): NetworkWeatherForecastDto
+
+    @GET("api/exchange-rates")
+    suspend fun getExchangeRates(@Query("base") base: String = "EUR"): NetworkExchangeRatesDto
+
+    @GET("api/accommodations/{id}/nearby")
+    suspend fun getNearbyPlaces(@Path("id") accommodationId: Long): List<NetworkNearbyPlaceDto>
 }

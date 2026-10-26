@@ -16,9 +16,11 @@ import androidx.room.RoomDatabase
     entities = [
         AccommodationEntity::class,
         FavoriteEntity::class,
-        UserPreferenceEntity::class
+        UserPreferenceEntity::class,
+        WeatherCacheEntity::class,
+        ExchangeRateCacheEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class StayFinderDatabase : RoomDatabase() {
@@ -26,6 +28,8 @@ abstract class StayFinderDatabase : RoomDatabase() {
     abstract fun accommodationDao(): AccommodationDao
     abstract fun favoriteDao(): FavoriteDao
     abstract fun userPreferenceDao(): UserPreferenceDao
+    abstract fun weatherCacheDao(): WeatherCacheDao
+    abstract fun exchangeRateCacheDao(): ExchangeRateCacheDao
 
     companion object {
         @Volatile

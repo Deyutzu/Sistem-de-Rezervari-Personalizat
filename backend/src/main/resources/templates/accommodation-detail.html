@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ro" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${accommodation.title} + ' - StayFinder'">Detaliu Cazare - StayFinder</title>
+    <style>
+        :root {
+            --primary: #006874;
+            --primary-container: #97f0ff;
+            --on-primary-container: #001f24;
+            --secondary: #4a6267;
+            --surface: #fbfcfe;
+            --surface-variant: #dbe4e6;
+            --on-surface: #191c1d;
+            --on-surface-variant: #3f484a;
+            --outline: #6f797a;
+            --coral: #9c4146;
+            --card-bg: #ffffff;
+            --border-radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f0f4f5;
+            color: var(--on-surface);
+            line-height: 1.5;
+            padding: 24px 16px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .hero-img {
+            width: 100%;
+            height: 380px;
+            object-fit: cover;
+            display: block;
+            background-color: var(--surface-variant);
+        }
+
+        .content {
+            padding: 32px 28px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--on-surface);
+        }
+
+        .location {
+            color: var(--on-surface-variant);
+            font-size: 1rem;
+            margin-top: 4px;
+        }
+
+        .price-box {
+            background: #e6f6f8;
+            padding: 14px 20px;
+            border-radius: 12px;
+            text-align: right;
+            border-left: 4px solid var(--primary);
+        }
+
+        .price-eur {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .price-ron {
+            font-size: 0.95rem;
+            color: #2e595e;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .rate-hint {
+            font-size: 0.75rem;
+            color: var(--outline);
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 16px 0 24px 0;
+        }
+
+        .chip {
+            background-color: #e0f2f1;
+            color: var(--primary);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .chip-allinclusive {
+            background-color: #ffe0b2;
+            color: #b75500;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin: 28px 0 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .description {
+            color: var(--on-surface-variant);
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        /* --- Vremea pe 7 zile --- */
+        .weather-scroll {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 12px;
+            margin-top: 8px;
+        }
+
+        .weather-card {
+            background: #f7fafb;
+            border: 1px solid #dbe4e6;
+            border-radius: 12px;
+            padding: 14px;
+            min-width: 110px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .weather-date {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--on-surface-variant);
+            margin-bottom: 6px;
+        }
+
+        .weather-icon {
+            font-size: 1.8rem;
+            margin: 4px 0;
+        }
+
+        .weather-desc {
+            font-size: 0.8rem;
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .weather-temp {
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .weather-precip {
+            font-size: 0.75rem;
+            color: #2b6cb0;
+            margin-top: 4px;
+        }
+
+        /* --- Obiective turistice --- */
+        .places-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .place-card {
+            background: #f8fafb;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .place-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .place-category {
+            font-size: 0.75rem;
+            color: var(--outline);
+            margin-top: 2px;
+        }
+
+        .place-distance {
+            background: #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .footer-note {
+            margin-top: 36px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 0.85rem;
+            color: var(--outline);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <img class="hero-img" th:src="${accommodation.imageUrl}" th:alt="${accommodation.title}"
+         src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80">
+
+    <div class="content">
+        <div class="header">
+            <div>
+                <h1 class="title" th:text="${accommodation.title}">Titlu Cazare</h1>
+                <p class="location" th:text="${accommodation.city} + ', ' + ${accommodation.region} + ', ' + ${accommodation.country}">Brașov, România</p>
+                <p style="margin-top: 6px; font-weight: 600; color: #b75500;">
+                    ⭐ <span th:text="${accommodation.rating}">4.8</span> / 5.0
+                </p>
+            </div>
+
+            <!-- Preț în EUR și aproximare în RON (calculat din Frankfurter) -->
+            <div class="price-box">
+                <div class="price-eur">
+                    <span th:text="'€' + ${accommodation.pricePerNight}">€120</span>
+                    <span style="font-size: 0.85rem; font-weight: 400; color: var(--on-surface-variant);">/ noapte</span>
+                </div>
+                <div class="price-ron" th:if="${priceRon != null}">
+                    <span th:text="'~ ' + ${priceRon} + ' RON'">~ 597.00 RON</span>
+                </div>
+                <div class="rate-hint" th:if="${ronRate != null}">
+                    1 EUR ≈ <span th:text="${ronRate}">4.9750</span> RON
+                </div>
+            </div>
+        </div>
+
+        <div class="chips">
+            <span class="chip" th:text="${accommodation.type}">HOTEL</span>
+            <span class="chip" th:text="'Potrivit: ' + ${accommodation.suitableFor}">Potrivit: COUPLE</span>
+            <span class="chip chip-allinclusive" th:if="${accommodation.allInclusive}">All Inclusive</span>
+            <span class="chip" th:each="tag : ${accommodation.tags}" th:text="'#' + ${tag}">#spa</span>
+        </div>
+
+        <h2 class="section-title">Despre această cazare</h2>
+        <p class="description" th:text="${accommodation.description}">Descrierea cazării...</p>
+
+        <!-- Secțiune Vreme pe 7 zile (Open-Meteo) -->
+        <div th:if="${weather != null and weather.days != null}">
+            <h2 class="section-title">🌤️ Vremea în următoarele 7 zile</h2>
+            <p style="font-size: 0.85rem; color: var(--outline); margin-bottom: 8px;" th:text="${weather.note}">
+                Prognoza meteo curentă pentru destinație
+            </p>
+            <div class="weather-scroll">
+                <div class="weather-card" th:each="day : ${weather.days}">
+                    <div class="weather-date" th:text="${#temporals.format(day.date, 'dd MMM')}">26 Oct</div>
+                    <div class="weather-icon">
+                        <span th:if="${day.icon == 'sun'}">☀️</span>
+                        <span th:if="${day.icon == 'clouds'}">⛅</span>
+                        <span th:if="${day.icon == 'rain'}">🌧️</span>
+                        <span th:if="${day.icon == 'snow'}">❄️</span>
+                        <span th:if="${day.icon == 'thunder'}">⛈️</span>
+                    </div>
+                    <div class="weather-desc" th:text="${day.description}">Senin</div>
+                    <div class="weather-temp" th:text="${day.tempMin} + '° / ' + ${day.tempMax} + '°'">5° / 18°</div>
+                    <div class="weather-precip" th:if="${day.precipitation > 0}" th:text="'💧 ' + ${day.precipitation} + ' mm'">
+                        💧 2.5 mm
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Secțiune Obiective Turistice (OpenTripMap) -->
+        <div th:if="${nearbyPlaces != null and !nearbyPlaces.isEmpty()}">
+            <h2 class="section-title">📍 Aproape de cazare (rază 5 km)</h2>
+            <div class="places-grid">
+                <div class="place-card" th:each="place : ${nearbyPlaces}">
+                    <div>
+                        <div class="place-name" th:text="${place.name}">Biserica Neagră</div>
+                        <div class="place-category" th:text="${place.category}">Istoric</div>
+                    </div>
+                    <div class="place-distance" th:text="${place.distanceMeters >= 1000 ? (place.distanceMeters / 1000.0) + ' km' : place.distanceMeters + ' m'}">
+                        1.4 km
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-note">
+            StayFinder &bull; Datele meteo sunt furnizate prin Open-Meteo &bull; Curs valutar via Frankfurter
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

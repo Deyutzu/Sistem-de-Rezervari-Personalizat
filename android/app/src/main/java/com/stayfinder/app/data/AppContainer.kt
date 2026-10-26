@@ -57,4 +57,12 @@ class AppContainer(context: Context) {
             apiServiceProvider = { apiService },
             authRepository = authRepository
         )
+
+    val externalDataRepository: ExternalDataRepository by lazy {
+        ExternalDataRepository(
+            apiService = apiService,
+            weatherCacheDao = database.weatherCacheDao(),
+            exchangeRateCacheDao = database.exchangeRateCacheDao()
+        )
+    }
 }
