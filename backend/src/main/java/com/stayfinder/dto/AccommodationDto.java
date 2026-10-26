@@ -1,5 +1,6 @@
 package com.stayfinder.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.stayfinder.model.Accommodation;
 import com.stayfinder.model.AccommodationType;
 import com.stayfinder.model.TravelType;
@@ -9,15 +10,9 @@ import java.util.List;
 
 /**
  * Ce trimitem clientului (Android / web) despre o cazare.
- *
- * De ce DTO și nu entitatea direct:
- *  - controlăm exact ce câmpuri apar în JSON (contractul API nu se schimbă
- *    automat când modificăm baza de date);
- *  - evităm probleme Hibernate (relații LAZY serializate în afara tranzacției,
- *    bucle infinite User -> Booking -> User);
- *  - nu expunem accidental date sensibile.
- * "record" = clasă imutabilă cu constructor, getteri, equals/hashCode generate de Java.
+ * În feed-ul personalizat, include suplimentar câmpurile `score` și `reason`.
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record AccommodationDto(
         Long id,
         String title,
@@ -33,11 +28,18 @@ public record AccommodationDto(
         double latitude,
         double longitude,
         List<String> tags,
-        TravelType suitableFor
+        TravelType suitableFor,
+        Double score,
+        String reason
 ) {
 
-    /** Conversie entitate -> DTO. Trebuie apelată în interiorul unei tranzacții (tags e LAZY). */
+    /** Conversie fără scor și motiv (pentru listări publice). */
     public static AccommodationDto from(Accommodation a) {
+        return from(a, null, null);
+    }
+
+    /** Conversie completă cu scor de relevanță și motivul recomandării (pentru feed). */
+    public static AccommodationDto from(Accommodation a, Double score, String reason) {
         return new AccommodationDto(
                 a.getId(),
                 a.getTitle(),
@@ -53,7 +55,9 @@ public record AccommodationDto(
                 a.getLatitude(),
                 a.getLongitude(),
                 List.copyOf(a.getTags()),
-                a.getSuitableFor()
+                a.getSuitableFor(),
+                score,
+                reason
         );
     }
 }

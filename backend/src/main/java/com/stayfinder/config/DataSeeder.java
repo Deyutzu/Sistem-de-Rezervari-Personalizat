@@ -2,16 +2,15 @@ package com.stayfinder.config;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stayfinder.model.Accommodation;
-import com.stayfinder.model.AccommodationType;
-import com.stayfinder.model.SimilarRegion;
-import com.stayfinder.model.TravelType;
+import com.stayfinder.model.*;
 import com.stayfinder.repository.AccommodationRepository;
 import com.stayfinder.repository.SimilarRegionRepository;
+import com.stayfinder.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,13 +35,19 @@ public class DataSeeder implements CommandLineRunner {
 
     private final AccommodationRepository accommodationRepository;
     private final SimilarRegionRepository similarRegionRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper; // ObjectMapper-ul configurat de Spring Boot
 
     public DataSeeder(AccommodationRepository accommodationRepository,
                       SimilarRegionRepository similarRegionRepository,
+                      UserRepository userRepository,
+                      PasswordEncoder passwordEncoder,
                       ObjectMapper objectMapper) {
         this.accommodationRepository = accommodationRepository;
         this.similarRegionRepository = similarRegionRepository;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
     }
 
@@ -76,6 +81,23 @@ public class DataSeeder implements CommandLineRunner {
                     .map(s -> new SimilarRegion(s.regionA(), s.regionB(), s.similarityWeight()))
                     .toList());
             log.info("Import: {} perechi de regiuni similare", seeds.size());
+        }
+
+        if (userRepository.count() == 0) {
+            User admin = new User(
+                    "admin@stayfinder.com",
+                    passwordEncoder.encode("admin123"),
+                    "Administrator",
+                    Role.ADMIN
+            );
+            User user = new User(
+                    "user@stayfinder.com",
+                    passwordEncoder.encode("user123"),
+                    "Andrei Popescu",
+                    Role.USER
+            );
+            userRepository.saveAll(List.of(admin, user));
+            log.info("Import: Utilizatori inițiali creați (admin@stayfinder.com, user@stayfinder.com)");
         }
     }
 

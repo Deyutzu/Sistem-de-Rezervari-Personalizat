@@ -3,6 +3,7 @@ package com.stayfinder.controller;
 import com.stayfinder.dto.AccommodationDto;
 import com.stayfinder.dto.PageResponse;
 import com.stayfinder.model.AccommodationType;
+import com.stayfinder.security.UserPrincipal;
 import com.stayfinder.service.AccommodationService;
 import com.stayfinder.service.AccommodationService.SearchCriteria;
 import com.stayfinder.service.AccommodationService.SortOption;
@@ -13,6 +14,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -53,8 +55,10 @@ public class AccommodationController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Detaliile unei cazări")
-    public AccommodationDto getById(@PathVariable Long id) {
-        return accommodationService.getById(id);
+    @Operation(summary = "Detaliile unei cazări (înregistrează ViewEvent dacă utilizatorul este autentificat)")
+    public AccommodationDto getById(@PathVariable Long id,
+                                   @AuthenticationPrincipal UserPrincipal principal) {
+        Long userId = principal != null ? principal.getId() : null;
+        return accommodationService.getById(id, userId);
     }
 }

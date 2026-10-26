@@ -70,9 +70,38 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Vor fi adăugate în fazele următoare:
-             Faza 4: spring-boot-starter-security + jjwt (JWT)
-             Faza 6: spring-boot-starter-thymeleaf + thymeleaf-extras-springsecurity6 -->
+        <!-- Spring Security (pentru autentificare JWT pe /api) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JJWT (Java JWT) -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.6</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Faza 6: spring-boot-starter-thymeleaf + thymeleaf-extras-springsecurity6 -->
     </dependencies>
 
     <build>

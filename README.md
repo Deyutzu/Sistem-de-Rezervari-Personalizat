@@ -13,25 +13,46 @@ Platformă de descoperire și rezervare de cazări cu **feed personalizat** în 
 | 1 | Backend de bază: entități, import JSON, GET cazări, Swagger | ✅ |
 | 2 | Android: listă + detaliu, navigare | ✅ |
 | 3 | Android: Room, onboarding | ✅ |
-| 4 | Backend: JWT, preferințe, favorite, rezervări, recomandări | ⏳ |
+| 4 | Backend: JWT, preferințe, favorite, rezervări, recomandări | ✅ |
 | 5 | Android ↔ backend (Retrofit), feed personalizat | ⏳ |
 | 6 | Web Thymeleaf + panou admin | ⏳ |
 | 7 | Finisaje + funcționalitate avansată | ⏳ |
 
-## Funcționalități (faza 1)
+## Funcționalități (faza 1 & faza 4)
 
 - 60 de cazări reale/plauzibile (munte, mare, oraș) importate automat la pornire
 - Tabel `SimilarRegion` pre-populat (ex. Dolomiți IT ↔ Dolomiții Lienz AT)
 - Căutare cu filtre combinabile, sortare și paginare
-- Format JSON uniform pentru erori
-- Documentație interactivă Swagger UI
+- Autentificare stateless JWT (BCrypt, token HS256, filtre Spring Security)
+- Conturi implicite pre-configurate:
+  - **Admin**: `admin@stayfinder.com` / `admin123`
+  - **Utilizator**: `user@stayfinder.com` / `user123`
+- Motor de recomandare personalizat (`GET /api/feed`) cu transparență decizională:
+  - Formula de scor ponderat:
+    `score = 0.30 * typeMatch + 0.20 * budgetMatch + 0.10 * allInclusiveMatch + 0.20 * tagAffinity + 0.15 * regionDiversityBonus + 0.05 * normalizedRating - penalties`
+  - Bonus diversitate regională (ex. Dolomiți Italia -> Dolomiți Austria într-o țară nouă)
+  - Penalizări automate (aceeași regiune vizitată, cazare vizualizată repetat fără interacțiune)
+  - Cazările deja rezervate confirmat sunt excluse automat din feed
+  - Motiv textual explicativ atașat fiecărei recomandări (`reason`)
+- Gestionare completă preferințe, favorite și rezervări pentru utilizatorul logat (`/api/me/**`)
+- Operațiuni CRUD de administrare protejate prin rol (`/api/admin/accommodations/**`)
+- Format JSON uniform pentru erori și răspunsuri paginate
+- Documentație interactivă Swagger UI cu suport Bearer JWT
 
-## API (faza 1)
+## API (faza 1 & faza 4)
 
-| Metodă | Endpoint | Descriere |
-|--------|----------|-----------|
-| GET | `/api/accommodations` | Listă paginată. Filtre opționale: `type` (SEA/MOUNTAIN/CITY), `minPrice`, `maxPrice`, `allInclusive`, `country`, `search`; `sort` (RATING / PRICE_ASC / PRICE_DESC), `page`, `size` |
-| GET | `/api/accommodations/{id}` | Detaliile unei cazări |
+| Metodă | Endpoint | Acces | Descriere |
+|--------|----------|-------|-----------|
+| POST | `/api/auth/register` | Public | Înregistrare cont nou |
+| POST | `/api/auth/login` | Public | Autentificare și primire token JWT |
+| GET | `/api/accommodations` | Public | Listă paginată cu filtre opționale și sortare |
+| GET | `/api/accommodations/{id}` | Public | Detaliu cazare (înregistrează ViewEvent dacă ești autentificat) |
+| GET | `/api/feed` | User | Feed personalizat de recomandări cu scor și motiv |
+| GET / PUT | `/api/me/preferences` | User | Vizualizare / actualizare preferințe de călătorie |
+| GET / POST / DELETE | `/api/me/favorites[/{id}]` | User | Listare, adăugare și ștergere cazări favorite |
+| GET / POST | `/api/me/bookings` | User | Listare și creare rezervare nouă |
+| PUT | `/api/me/bookings/{id}/cancel` | User | Anulare rezervare |
+| POST / PUT / DELETE | `/api/admin/accommodations[/{id}]` | Admin | Adăugare, editare și ștergere cazare |
 
 Exemplu: `GET /api/accommodations?type=MOUNTAIN&country=Austria&maxPrice=200&page=0&size=10`
 
