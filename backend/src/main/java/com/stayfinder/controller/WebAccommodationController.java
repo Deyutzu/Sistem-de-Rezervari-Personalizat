@@ -1,12 +1,12 @@
 package com.stayfinder.controller;
 
+import com.stayfinder.dto.AccommodationDto;
 import com.stayfinder.dto.ExchangeRatesDto;
 import com.stayfinder.dto.NearbyPlaceDto;
 import com.stayfinder.dto.WeatherForecastDto;
 import com.stayfinder.external.FrankfurterClient;
 import com.stayfinder.external.OpenMeteoClient;
 import com.stayfinder.external.OpenTripMapClient;
-import com.stayfinder.model.Accommodation;
 import com.stayfinder.service.AccommodationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +28,8 @@ import java.util.Locale;
  * - Nu se fac apeluri JavaScript către API-urile externe din browser.
  * - Toate datele (vreme, curs valutar din cache, atracții turistice) sunt agregate pe server
  *   prin serviciile interne și trimise ca HTML gata randat.
+ * - Folosim AccommodationDto (în loc de entitatea JPA) pentru a evita erori de tip LazyInitializationException
+ *   la accesarea colecțiilor (tags) în afara sesiunii de bază de date.
  */
 @Controller
 @RequestMapping("/accommodations")
@@ -52,7 +54,7 @@ public class WebAccommodationController {
 
     @GetMapping("/{id}")
     public String getDetailPage(@PathVariable Long id, Model model) {
-        Accommodation accommodation = accommodationService.findEntity(id);
+        AccommodationDto accommodation = accommodationService.getById(id);
         model.addAttribute("accommodation", accommodation);
 
         // 1. Curs valutar & calcul preț aproximativ în RON
@@ -62,8 +64,8 @@ public class WebAccommodationController {
             ExchangeRatesDto rates = frankfurterClient.getExchangeRates("EUR");
             if (rates != null && rates.rates() != null) {
                 ronRate = rates.rates().get("RON");
-                if (ronRate != null && accommodation.getPricePerNight() != null) {
-                    priceRon = accommodation.getPricePerNight()
+                if (ronRate != null && accommodation.pricePerNight() != null) {
+                    priceRon = accommodation.pricePerNight()
                             .multiply(BigDecimal.valueOf(ronRate))
                             .setScale(2, RoundingMode.HALF_UP);
                 }
@@ -77,12 +79,12 @@ public class WebAccommodationController {
         // 2. Prognoza meteo pe 7 zile (Open-Meteo)
         WeatherForecastDto weather = null;
         try {
-            String locationName = accommodation.getTitle() + " (" + accommodation.getCity() + ")";
+            String locationName = accommodation.title() + " (" + accommodation.city() + ")";
             weather = openMeteoClient.getForecast(
                     id,
                     locationName,
-                    accommodation.getLatitude(),
-                    accommodation.getLongitude()
+                    accommodation.latitude(),
+                    accommodation.longitude()
             );
         } catch (Exception ex) {
             log.warn("Nu s-a putut obține prognoza meteo pentru cazarea {}: {}", id, ex.getMessage());
@@ -93,8 +95,8 @@ public class WebAccommodationController {
         List<NearbyPlaceDto> nearbyPlaces = List.of();
         try {
             nearbyPlaces = openTripMapClient.getNearbyPlaces(
-                    accommodation.getLatitude(),
-                    accommodation.getLongitude()
+                    accommodation.latitude(),
+                    accommodation.longitude()
             );
         } catch (Exception ex) {
             log.warn("Nu s-au putut obține obiectivele turistice pentru cazarea {}: {}", id, ex.getMessage());
